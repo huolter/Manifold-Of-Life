@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conway's Game of Life - 3D Topologies</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #050510;
+            color: #ffffff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Glass morphism panels */
+        .panel {
+            position: absolute;
+            top: 20px;
+            bottom: 20px;
+            width: 280px;
+            background: rgba(5, 5, 16, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            font-size: 13px;
+            line-height: 1.5;
+            user-select: none;
+            overflow-y: auto;
+            overflow-x: hidden;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .panel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .panel::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+        }
+
+        .panel::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 255, 0.5);
+            border-radius: 3px;
+        }
+
+        .panel::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 255, 255, 0.8);
+        }
+
+        #left-panel {
+            left: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        #left-panel.collapsed {
+            transform: translateX(calc(-100% - 20px));
+        }
+
+        #right-panel {
+            right: 20px;
+            pointer-events: none;
+            transition: transform 0.3s ease;
+        }
+
+        #right-panel.collapsed {
+            transform: translateX(calc(100% + 20px));
+        }
+
+        /* Panel toggle buttons */
+        .panel-toggle {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 60px;
+            background: rgba(0, 255, 255, 0.2);
+            border: 1px solid rgba(0, 255, 255, 0.5);
+            border-radius: 0 8px 8px 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #00ffff;
+            transition: all 0.3s ease;
+            pointer-events: auto;
+            z-index: 100;
+        }
+
+        #left-panel .panel-toggle {
+            right: -33px;
+            border-left: none;
+        }
+
+        #left-panel.collapsed .panel-toggle {
+            left: calc(100% + 20px);
+            border-radius: 8px 0 0 8px;
+        }
+
+        #right-panel .panel-toggle {
+            left: -33px;
+            border-right: none;
+            border-radius: 8px 0 0 8px;
+        }
+
+        #right-panel.collapsed .panel-toggle {
+            right: calc(100% + 20px);
+            border-radius: 0 8px 8px 0;
+        }
+
+        .panel-toggle:hover {
+            background: rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 12px rgba(0, 255, 255, 0.4);
+        }
+
+        .panel h2 {
+            color: #00ffff;
+            font-size: 16px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            padding-bottom: 8px;
+        }
+
+        .panel h3 {
+            color: #00ffff;
+            font-size: 13px;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .section {
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        /* Form controls shared styles */
+        .panel label {
+            display: block;
+            color: #aaaaff;
+            font-size: 11px;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .panel select,
+        .panel input[type="color"] {
+            pointer-events: auto;
+            background: rgba(26, 26, 46, 0.8);
+            color: #00ffff;
+            border: 1px solid rgba(0, 255, 255, 0.5);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s ease;
+        }
+
+        .panel select:hover,
+        .panel input[type="color"]:hover {
+            background: rgba(42, 42, 62, 0.9);
+            border-color: #00ffff;
+        }
+
+        .panel select:focus {
+            outline: none;
+            border-color: #00ffff;
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
+        }
+
+        /* Checkbox styles */
+        .panel input[type="checkbox"] {
+            pointer-events: auto;
+            cursor: pointer;
+            margin-right: 8px;
+            width: 16px;
+            height: 16px;
+            accent-color: #00ffff;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .toggle-container label {
+            margin: 0;
+            color: #00ffff;
+            font-size: 12px;
+            text-transform: none;
+        }
+
+        /* Range slider styles */
+        .panel input[type="range"] {
+            pointer-events: auto;
+            width: 100%;
+            cursor: pointer;
+            background: transparent;
+            -webkit-appearance: none;
+            margin: 8px 0;
+        }
+
+        .panel input[type="range"]::-webkit-slider-track {
+            width: 100%;
+            height: 3px;
+            background: rgba(26, 26, 46, 0.8);
+            border: 1px solid rgba(0, 255, 255, 0.5);
+            border-radius: 2px;
+        }
+
+        .panel input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: #00ffff;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 6px rgba(0, 255, 255, 0.6);
+        }
+
+        .panel input[type="range"]::-moz-range-track {
+            width: 100%;
+            height: 3px;
+            background: rgba(26, 26, 46, 0.8);
+            border: 1px solid rgba(0, 255, 255, 0.5);
+            border-radius: 2px;
+        }
+
+        .panel input[type="range"]::-moz-range-thumb {
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: #00ffff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 6px rgba(0, 255, 255, 0.6);
+        }
+
+        .speed-value {
+            color: #00ffff;
+            font-size: 11px;
+            float: right;
+        }
+
+        /* Button styles */
+        .panel button {
+            pointer-events: auto;
+            width: 100%;
+            padding: 8px 12px;
+            margin-top: 8px;
+            background: rgba(0, 255, 255, 0.1);
+            color: #00ffff;
+            border: 1px solid rgba(0, 255, 255, 0.5);
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .panel button:hover {
+            background: rgba(0, 255, 255, 0.2);
+            border-color: #00ffff;
+            box-shadow: 0 0 12px rgba(0, 255, 255, 0.3);
+        }
+
+        .panel button:active {
+            background: #00ffff;
+            color: #050510;
+            transform: scale(0.98);
+        }
+
+        .panel button.primary {
+            background: rgba(0, 255, 255, 0.2);
+            border-width: 2px;
+        }
+
+        /* Color input specific */
+        .color-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .color-row label {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .color-row input[type="color"] {
+            width: 50px;
+            height: 28px;
+            padding: 2px;
+        }
+
+        /* Stats display */
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #aaaaff;
+            font-size: 11px;
+        }
+
+        .stat-value {
+            color: #00ffff;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        /* Canvas for graph */
+        #population-graph {
+            width: 100%;
+            height: 120px;
+            margin: 10px 0;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+
+        canvas {
+            display: block;
+        }
+
+        body.grabbing {
+            cursor: grabbing !important;
+        }
+
+        body.grab {
+            cursor: grab !important;
+        }
+
+        body.move {
+            cursor: move !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+
+    <!-- LEFT PANEL: Controls -->
+    <div id="left-panel" class="panel">
+        <div class="panel-toggle" id="left-toggle">◀</div>
+        <h2>Controls</h2>
+
+        <!-- Topology Section -->
+        <div class="section">
+            <label for="topology">Topology</label>
+            <select id="topology">
+                <option value="torus">Torus (Donut)</option>
+                <option value="doubletorus">Double Torus (Figure-8)</option>
+                <option value="sphere">Sphere</option>
+                <option value="klein">Klein Bottle</option>
+                <option value="cylinder">Cylinder</option>
+                <option value="mobius">Möbius Strip</option>
+                <option value="plane">Plane (2D Flat)</option>
+            </select>
+        </div>
+
+        <!-- CA Rules Section -->
+        <div class="section">
+            <label for="caRule">Cellular Automaton</label>
+            <select id="caRule">
+                <option value="conway">Conway's Life (B3/S23)</option>
+                <option value="seeds">Seeds (B2/S)</option>
+                <option value="highlife">HighLife (B36/S23)</option>
+                <option value="daynight">Day & Night (B3678/S34678)</option>
+                <option value="maze">Maze (B3/S12345)</option>
+            </select>
+        </div>
+
+        <!-- Simulation Controls -->
+        <div class="section">
+            <h3>Simulation</h3>
+            <button id="pausePlay" class="primary">⏸ Pause</button>
+            <button id="step">⏭ Step</button>
+            <button id="randomize">🎲 Randomize</button>
+            <label for="simSpeed">Speed: <span id="simSpeedValue" class="speed-value">100ms</span></label>
+            <input type="range" id="simSpeed" min="10" max="500" step="10" value="100">
+        </div>
+
+        <!-- Visual Effects -->
+        <div class="section">
+            <h3>Visual Effects</h3>
+            <div class="toggle-container">
+                <input type="checkbox" id="effectAge">
+                <label for="effectAge">Age Heat Map</label>
+            </div>
+            <div class="toggle-container">
+                <input type="checkbox" id="effectTrail">
+                <label for="effectTrail">Trail Effect</label>
+            </div>
+            <div class="toggle-container">
+                <input type="checkbox" id="effectGlow">
+                <label for="effectGlow">Glow</label>
+            </div>
+            <div class="toggle-container">
+                <input type="checkbox" id="effectWireframe">
+                <label for="effectWireframe">Wireframe</label>
+            </div>
+        </div>
+
+        <!-- Rotation -->
+        <div class="section">
+            <h3>Rotation</h3>
+            <div class="toggle-container">
+                <input type="checkbox" id="autoRotate">
+                <label for="autoRotate">Auto-Rotate</label>
+            </div>
+            <label for="rotationSpeedX">X-axis: <span id="speedXValue" class="speed-value">0.5</span></label>
+            <input type="range" id="rotationSpeedX" min="0" max="2" step="0.1" value="0.5">
+            <label for="rotationSpeedY">Y-axis: <span id="speedYValue" class="speed-value">0.5</span></label>
+            <input type="range" id="rotationSpeedY" min="0" max="2" step="0.1" value="0.5">
+        </div>
+
+        <!-- Colors -->
+        <div class="section">
+            <h3>Colors</h3>
+            <div class="color-row">
+                <label>Alive</label>
+                <input type="color" id="colorAlive" value="#00ffff">
+            </div>
+            <div class="color-row">
+                <label>Dead</label>
+                <input type="color" id="colorDead" value="#111122">
+            </div>
+            <div class="color-row">
+                <label>Background</label>
+                <input type="color" id="colorBackground" value="#050510">
+            </div>
+            <button id="resetColors">Reset Colors</button>
+        </div>
+    </div>
+
+    <!-- RIGHT PANEL: Stats & Analysis -->
+    <div id="right-panel" class="panel">
+        <div class="panel-toggle" id="right-toggle">▶</div>
+        <h2>Statistics</h2>
+
+        <!-- Basic Stats -->
+        <div class="section">
+            <div class="stat-row">
+                <span class="stat-label">Generation</span>
+                <span class="stat-value" id="generation">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Alive Cells</span>
+                <span class="stat-value" id="alive">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">FPS</span>
+                <span class="stat-value" id="fps">0</span>
+            </div>
+        </div>
+
+        <!-- Population Graph -->
+        <div class="section">
+            <h3>Population</h3>
+            <canvas id="population-graph"></canvas>
+        </div>
+
+        <!-- Pattern Metrics -->
+        <div class="section">
+            <h3>Pattern Metrics</h3>
+            <div class="stat-row">
+                <span class="stat-label">Birth Rate</span>
+                <span class="stat-value" id="birthRate">0/gen</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Death Rate</span>
+                <span class="stat-value" id="deathRate">0/gen</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Stability</span>
+                <span class="stat-value" id="stability">0%</span>
+            </div>
+        </div>
+
+        <!-- Topology Info -->
+        <div class="section">
+            <h3>Topology</h3>
+            <div class="stat-row">
+                <span class="stat-label">Euler χ</span>
+                <span class="stat-value" id="eulerChar">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Genus</span>
+                <span class="stat-value" id="genus">1</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Orientable</span>
+                <span class="stat-value" id="orientable">Yes</span>
+            </div>
+        </div>
+
+        <!-- Controls Help -->
+        <div class="section">
+            <h3>Controls</h3>
+            <div style="font-size: 10px; line-height: 1.6; color: #aaaaff;">
+                SPACE - Randomize<br>
+                ARROWS - Rotate<br>
+                DRAG - Rotate view<br>
+                SHIFT+DRAG - Pan<br>
+                WHEEL - Zoom
+            </div>
+        </div>
+
+        <!-- Creator Credit -->
+        <div style="margin-top: 20px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1); text-align: center; pointer-events: auto;">
+            <div style="font-size: 9px; color: #666; line-height: 1.4;">
+                Created by <span style="color: #00ffff;">Walter</span><br>
+                <a href="https://x.com/walter_h_g_" target="_blank" style="color: #888; text-decoration: none; transition: color 0.2s; cursor: pointer;" onmouseover="this.style.color='#00ffff'" onmouseout="this.style.color='#888'">@walter_h_g_</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Constants
+        const GRID_SIZE = 316;
+        const TOTAL_CELLS = GRID_SIZE * GRID_SIZE;
+        const TORUS_MAJOR_RADIUS = 180;
+        const TORUS_MINOR_RADIUS = 90;
+        const UPDATE_INTERVAL = 100; // ms
+        const ALIVE_PROBABILITY = 0.15;
+        const CELL_SIZE = 1.8; // Size to make cells touch
+
+        // Colors
+        const DEFAULT_COLOR_ALIVE = '#00ffff';
+        const DEFAULT_COLOR_DEAD = '#111122';
+        const DEFAULT_COLOR_BACKGROUND = '#050510';
+
+        let COLOR_ALIVE = new THREE.Color(0x00ffff);
+        let COLOR_DEAD = new THREE.Color(0x111122);
+
+        // CA Rules
+        const CA_RULES = {
+            conway: { birth: [3], survive: [2, 3] },
+            seeds: { birth: [2], survive: [] },
+            highlife: { birth: [3, 6], survive: [2, 3] },
+            daynight: { birth: [3, 6, 7, 8], survive: [3, 4, 6, 7, 8] },
+            maze: { birth: [3], survive: [1, 2, 3, 4, 5] }
+        };
+        let currentCARule = 'conway';
+
+        // Simulation state
+        let isPaused = false;
+        let UPDATE_INTERVAL_MS = 100;
+
+        // Visual effects state
+        let effectAgeEnabled = false;
+        let effectTrailEnabled = false;
+        let effectGlowEnabled = false;
+        let effectWireframeEnabled = false;
+
+        // Analysis state
+        let populationHistory = [];
+        const MAX_HISTORY = 100;
+        let birthCount = 0;
+        let deathCount = 0;
+
+        // Cell age tracking
+        let cellAge = new Uint8Array(TOTAL_CELLS);
+
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050510);
+
+        const camera = new THREE.PerspectiveCamera(
+            60,
+            window.innerWidth / window.innerHeight,
+            1,
+            2000
+        );
+        camera.position.set(0, 0, 500);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.getElementById('container').appendChild(renderer.domElement);
+
+        // Lighting
+        const light1 = new THREE.PointLight(0xffffff, 1, 0);
+        light1.position.set(300, 200, 300);
+        scene.add(light1);
+
+        const light2 = new THREE.PointLight(0x4444ff, 0.6, 0);
+        light2.position.set(-300, -200, -300);
+        scene.add(light2);
+
+        const ambientLight = new THREE.AmbientLight(0x333333);
+        scene.add(ambientLight);
+
+        // Cell geometry and material
+        const cellGeometry = new THREE.BoxGeometry(CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        const cellMaterial = new THREE.MeshLambertMaterial();
+
+        // Create instanced mesh
+        const instancedMesh = new THREE.InstancedMesh(
+            cellGeometry,
+            cellMaterial,
+            TOTAL_CELLS
+        );
+        instancedMesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+        scene.add(instancedMesh);
+
+        // Game state
+        let currentState = new Uint8Array(TOTAL_CELLS);
+        let nextState = new Uint8Array(TOTAL_CELLS);
+        let generation = 0;
+        let currentTopology = 'torus';
+
+        // Pre-calculate neighbor indices for toroidal topology
+        const neighborOffsets = [
+            [-1, -1], [-1, 0], [-1, 1],
+            [0, -1],           [0, 1],
+            [1, -1],  [1, 0],  [1, 1]
+        ];
+
+        let neighbors = new Array(TOTAL_CELLS);
+
+        // Neighbor calculation functions for different topologies
+        function calculateNeighborsTorus() {
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    const idx = i * GRID_SIZE + j;
+                    neighbors[idx] = neighborOffsets.map(([di, dj]) => {
+                        const ni = (i + di + GRID_SIZE) % GRID_SIZE;
+                        const nj = (j + dj + GRID_SIZE) % GRID_SIZE;
+                        return ni * GRID_SIZE + nj;
+                    });
+                }
+            }
+        }
+
+        function calculateNeighborsSphere() {
+            // Sphere has boundaries - edges don't wrap
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    const idx = i * GRID_SIZE + j;
+                    neighbors[idx] = neighborOffsets.map(([di, dj]) => {
+                        const ni = i + di;
+                        const nj = j + dj;
+                        if (ni < 0 || ni >= GRID_SIZE || nj < 0 || nj >= GRID_SIZE) {
+                            return -1; // Out of bounds
+                        }
+                        return ni * GRID_SIZE + nj;
+                    }).filter(n => n !== -1);
+                }
+            }
+        }
+
+        function calculateNeighborsPlane() {
+            // Plane has boundaries - edges don't wrap (same as sphere)
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    const idx = i * GRID_SIZE + j;
+                    neighbors[idx] = neighborOffsets.map(([di, dj]) => {
+                        const ni = i + di;
+                        const nj = j + dj;
+                        if (ni < 0 || ni >= GRID_SIZE || nj < 0 || nj >= GRID_SIZE) {
+                            return -1; // Out of bounds
+                        }
+                        return ni * GRID_SIZE + nj;
+                    }).filter(n => n !== -1);
+                }
+            }
+        }
+
+        function calculateNeighborsKlein() {
+            // Klein bottle: wraps normally on j-axis, flips on i-axis
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    const idx = i * GRID_SIZE + j;
+                    neighbors[idx] = neighborOffsets.map(([di, dj]) => {
+                        let ni = i + di;
+                        let nj = j + dj;
+
+                        // j-axis wraps normally
+                        nj = (nj + GRID_SIZE) % GRID_SIZE;
+
+                        // i-axis wraps with flip
+                        if (ni < 0) {
+                            ni = GRID_SIZE + ni;
+                            nj = (GRID_SIZE - 1 - nj);
+                        } else if (ni >= GRID_SIZE) {
+                            ni = ni - GRID_SIZE;
+                            nj = (GRID_SIZE - 1 - nj);
+                        }
+
+                        return ni * GRID_SIZE + nj;
+                    });
+                }
+            }
+        }
+
+        function calculateNeighborsCylinder() {
+            // Cylinder: wraps on j-axis, boundaries on i-axis
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    const idx = i * GRID_SIZE + j;
+                    neighbors[idx] = neighborOffsets.map(([di, dj]) => {
+                        const ni = i + di;
+                        let nj = (j + dj + GRID_SIZE) % GRID_SIZE;
+
+                        if (ni < 0 || ni >= GRID_SIZE) {
+                            return -1; // Out of bounds
+                        }
+                        return ni * GRID_SIZE + nj;
+                    }).filter(n => n !== -1);
+                }
+            }
+        }
+
+        function calculateNeighborsMobius() {
+            // Möbius strip: boundaries on i-axis, wraps with flip on j-axis
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    const idx = i * GRID_SIZE + j;
+                    neighbors[idx] = neighborOffsets.map(([di, dj]) => {
+                        let ni = i + di;
+                        let nj = j + dj;
+
+                        // i-axis has boundaries
+                        if (ni < 0 || ni >= GRID_SIZE) {
+                            return -1;
+                        }
+
+                        // j-axis wraps with flip
+                        if (nj < 0) {
+                            nj = GRID_SIZE + nj;
+                            ni = GRID_SIZE - 1 - ni;
+                        } else if (nj >= GRID_SIZE) {
+                            nj = nj - GRID_SIZE;
+                            ni = GRID_SIZE - 1 - ni;
+                        }
+
+                        if (ni < 0 || ni >= GRID_SIZE) {
+                            return -1;
+                        }
+
+                        return ni * GRID_SIZE + nj;
+                    }).filter(n => n !== -1);
+                }
+            }
+        }
+
+        calculateNeighborsTorus(); // Initialize with torus
+
+        // Position and normal calculation functions for different topologies
+
+        // TORUS
+        function getTorusPosition(u, v) {
+            const theta = u * Math.PI * 2;
+            const phi = v * Math.PI * 2;
+
+            const x = (TORUS_MAJOR_RADIUS + TORUS_MINOR_RADIUS * Math.cos(phi)) * Math.cos(theta);
+            const y = (TORUS_MAJOR_RADIUS + TORUS_MINOR_RADIUS * Math.cos(phi)) * Math.sin(theta);
+            const z = TORUS_MINOR_RADIUS * Math.sin(phi);
+
+            return new THREE.Vector3(x, y, z);
+        }
+
+        function getTorusNormal(u, v) {
+            const theta = u * Math.PI * 2;
+            const phi = v * Math.PI * 2;
+
+            const nx = Math.cos(phi) * Math.cos(theta);
+            const ny = Math.cos(phi) * Math.sin(theta);
+            const nz = Math.sin(phi);
+
+            return new THREE.Vector3(nx, ny, nz);
+        }
+
+        // DOUBLE TORUS (genus-2 surface)
+        // Creates a figure-8 shaped donut with two holes
+        function getDoubleTorusPosition(u, v) {
+            const t = u * Math.PI * 2;      // Parameter along the figure-8 centerline
+            const phi = v * Math.PI * 2;    // Parameter around the tube
+
+            // Lemniscate of Bernoulli (figure-8 curve) parameters
+            const a = 100;  // Scale of the figure-8
+            const r = 40;   // Tube radius
+
+            // Figure-8 centerline in the XZ plane
+            const cos_t = Math.cos(t);
+            const sin_t = Math.sin(t);
+            const denom = 1 + sin_t * sin_t;
+
+            const cx = a * Math.sqrt(2) * cos_t / denom;
+            const cz = a * Math.sqrt(2) * cos_t * sin_t / denom;
+
+            // Calculate tangent vector for proper tube orientation
+            const dt = 0.001;
+            const t2 = t + dt;
+            const cos_t2 = Math.cos(t2);
+            const sin_t2 = Math.sin(t2);
+            const denom2 = 1 + sin_t2 * sin_t2;
+            const cx2 = a * Math.sqrt(2) * cos_t2 / denom2;
+            const cz2 = a * Math.sqrt(2) * cos_t2 * sin_t2 / denom2;
+
+            // Tangent vector
+            const tangent_x = cx2 - cx;
+            const tangent_z = cz2 - cz;
+            const tangent_len = Math.sqrt(tangent_x * tangent_x + tangent_z * tangent_z);
+            const tx = tangent_x / tangent_len;
+            const tz = tangent_z / tangent_len;
+
+            // Binormal points in Y direction (perpendicular to XZ plane)
+            const bx = 0, by = 1, bz = 0;
+
+            // Normal = Binormal × Tangent
+            const nx = tz;   // by * tz - bz * 0
+            const ny = 0;    // bz * tx - bx * tz
+            const nz = -tx;  // bx * 0 - by * tx
+
+            // Construct the tube surface
+            const x = cx + r * (Math.cos(phi) * nx + Math.sin(phi) * bx);
+            const y = r * (Math.cos(phi) * ny + Math.sin(phi) * by);
+            const z = cz + r * (Math.cos(phi) * nz + Math.sin(phi) * bz);
+
+            return new THREE.Vector3(x, y, z);
+        }
+
+        function getDoubleTorusNormal(u, v) {
+            // Compute normal via partial derivatives
+            const eps = 0.001;
+            const p = getDoubleTorusPosition(u, v);
+
+            // Wrap u around [0, 1]
+            let u_plus = u + eps;
+            if (u_plus > 1) u_plus -= 1;
+
+            let v_plus = v + eps;
+            if (v_plus > 1) v_plus -= 1;
+
+            const pu = getDoubleTorusPosition(u_plus, v);
+            const pv = getDoubleTorusPosition(u, v_plus);
+
+            const tu = new THREE.Vector3().subVectors(pu, p);
+            const tv = new THREE.Vector3().subVectors(pv, p);
+
+            return new THREE.Vector3().crossVectors(tu, tv).normalize();
+        }
+
+        // SPHERE
+        function getSpherePosition(u, v) {
+            const theta = u * Math.PI * 2;
+            const phi = v * Math.PI;
+
+            const radius = 200;
+            const x = radius * Math.sin(phi) * Math.cos(theta);
+            const y = radius * Math.sin(phi) * Math.sin(theta);
+            const z = radius * Math.cos(phi);
+
+            return new THREE.Vector3(x, y, z);
+        }
+
+        function getSphereNormal(u, v) {
+            const theta = u * Math.PI * 2;
+            const phi = v * Math.PI;
+
+            const nx = Math.sin(phi) * Math.cos(theta);
+            const ny = Math.sin(phi) * Math.sin(theta);
+            const nz = Math.cos(phi);
+
+            return new THREE.Vector3(nx, ny, nz);
+        }
+
+        // KLEIN BOTTLE
+        function getKleinPosition(u, v) {
+            const theta = u * Math.PI * 2;
+            const phi = v * Math.PI * 2;
+
+            const r = 4 * (1 - Math.cos(theta) / 2);
+
+            let x, y, z;
+            if (theta < Math.PI) {
+                x = 6 * Math.cos(theta) * (1 + Math.sin(theta)) + r * Math.cos(theta) * Math.cos(phi);
+                z = 16 * Math.sin(theta) + r * Math.sin(theta) * Math.cos(phi);
+            } else {
+                x = 6 * Math.cos(theta) * (1 + Math.sin(theta)) + r * Math.cos(phi + Math.PI);
+                z = 16 * Math.sin(theta);
+            }
+            y = r * Math.sin(phi);
+
+            // Scale to fit viewport
+            const scale = 15;
+            return new THREE.Vector3(x * scale, y * scale, z * scale);
+        }
+
+        function getKleinNormal(u, v) {
+            // Approximate normal by calculating tangent vectors
+            const eps = 0.01;
+            const p = getKleinPosition(u, v);
+            const pu = getKleinPosition(u + eps, v);
+            const pv = getKleinPosition(u, v + eps);
+
+            const tu = new THREE.Vector3().subVectors(pu, p);
+            const tv = new THREE.Vector3().subVectors(pv, p);
+
+            return new THREE.Vector3().crossVectors(tu, tv).normalize();
+        }
+
+        // CYLINDER
+        function getCylinderPosition(u, v) {
+            const theta = u * Math.PI * 2;
+            const height = 300;
+            const radius = 150;
+
+            const x = radius * Math.cos(theta);
+            const y = radius * Math.sin(theta);
+            const z = (v - 0.5) * height;
+
+            return new THREE.Vector3(x, y, z);
+        }
+
+        function getCylinderNormal(u, v) {
+            const theta = u * Math.PI * 2;
+
+            const nx = Math.cos(theta);
+            const ny = Math.sin(theta);
+            const nz = 0;
+
+            return new THREE.Vector3(nx, ny, nz);
+        }
+
+        // MÖBIUS STRIP
+        function getMobiusPosition(u, v) {
+            const theta = u * Math.PI * 2;
+            const width = 80;
+            const radius = 150;
+
+            // v goes from -0.5 to 0.5 for the strip width
+            const t = (v - 0.5) * width;
+            const halfTheta = theta / 2;
+
+            const x = (radius + t * Math.cos(halfTheta)) * Math.cos(theta);
+            const y = (radius + t * Math.cos(halfTheta)) * Math.sin(theta);
+            const z = t * Math.sin(halfTheta);
+
+            return new THREE.Vector3(x, y, z);
+        }
+
+        function getMobiusNormal(u, v) {
+            // Approximate normal by calculating tangent vectors
+            const eps = 0.01;
+            const p = getMobiusPosition(u, v);
+            const pu = getMobiusPosition(u + eps, v);
+            const pv = getMobiusPosition(u, v + eps);
+
+            const tu = new THREE.Vector3().subVectors(pu, p);
+            const tv = new THREE.Vector3().subVectors(pv, p);
+
+            return new THREE.Vector3().crossVectors(tu, tv).normalize();
+        }
+
+        // PLANE (2D Flat)
+        function getPlanePosition(u, v) {
+            const width = 400;
+            const height = 400;
+
+            // Map u, v from [0, 1] to [-width/2, width/2] and [-height/2, height/2]
+            const x = (u - 0.5) * width;
+            const y = (v - 0.5) * height;
+            const z = 0;
+
+            return new THREE.Vector3(x, y, z);
+        }
+
+        function getPlaneNormal(u, v) {
+            // All normals point in the +Z direction (out of the plane)
+            return new THREE.Vector3(0, 0, 1);
+        }
+
+        // Initialize cell positions and orientations
+        const matrix = new THREE.Matrix4();
+        const position = new THREE.Vector3();
+        const quaternion = new THREE.Quaternion();
+        const scale = new THREE.Vector3(1, 1, 1);
+
+        function rebuildGeometry(topology) {
+            let getPosition, getNormal, calculateNeighbors;
+
+            switch(topology) {
+                case 'torus':
+                    getPosition = getTorusPosition;
+                    getNormal = getTorusNormal;
+                    calculateNeighbors = calculateNeighborsTorus;
+                    break;
+                case 'doubletorus':
+                    getPosition = getDoubleTorusPosition;
+                    getNormal = getDoubleTorusNormal;
+                    calculateNeighbors = calculateNeighborsTorus; // Same topology as torus
+                    break;
+                case 'sphere':
+                    getPosition = getSpherePosition;
+                    getNormal = getSphereNormal;
+                    calculateNeighbors = calculateNeighborsSphere;
+                    break;
+                case 'klein':
+                    getPosition = getKleinPosition;
+                    getNormal = getKleinNormal;
+                    calculateNeighbors = calculateNeighborsKlein;
+                    break;
+                case 'cylinder':
+                    getPosition = getCylinderPosition;
+                    getNormal = getCylinderNormal;
+                    calculateNeighbors = calculateNeighborsCylinder;
+                    break;
+                case 'mobius':
+                    getPosition = getMobiusPosition;
+                    getNormal = getMobiusNormal;
+                    calculateNeighbors = calculateNeighborsMobius;
+                    break;
+                case 'plane':
+                    getPosition = getPlanePosition;
+                    getNormal = getPlaneNormal;
+                    calculateNeighbors = calculateNeighborsPlane;
+                    break;
+            }
+
+            // Recalculate neighbors
+            calculateNeighbors();
+
+            // Rebuild positions and orientations
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    const idx = i * GRID_SIZE + j;
+
+                    const u = j / GRID_SIZE;
+                    const v = i / GRID_SIZE;
+
+                    position.copy(getPosition(u, v));
+                    const normal = getNormal(u, v);
+
+                    // Orient cell to face outward from surface
+                    const up = new THREE.Vector3(0, 0, 1);
+                    quaternion.setFromUnitVectors(up, normal);
+
+                    matrix.compose(position, quaternion, scale);
+                    instancedMesh.setMatrixAt(idx, matrix);
+                }
+            }
+
+            instancedMesh.instanceMatrix.needsUpdate = true;
+        }
+
+        // Initialize with torus
+        rebuildGeometry('torus');
+
+        // Initialize with random state
+        function randomizeState() {
+            for (let i = 0; i < TOTAL_CELLS; i++) {
+                currentState[i] = Math.random() < ALIVE_PROBABILITY ? 1 : 0;
+            }
+            generation = 0;
+            updateColors();
+        }
+
+        // Update cell colors based on state
+        function updateColors() {
+            const color = new THREE.Color();
+            for (let i = 0; i < TOTAL_CELLS; i++) {
+                if (currentState[i]) {
+                    if (effectAgeEnabled) {
+                        // Heat map: blue (young) -> cyan -> green -> yellow -> red (old)
+                        const age = cellAge[i] / 255;
+                        color.setHSL(0.6 - age * 0.6, 1.0, 0.5);
+                    } else {
+                        color.copy(COLOR_ALIVE);
+                    }
+                } else {
+                    if (effectTrailEnabled && cellAge[i] > 0) {
+                        // Colorful fading trail effect - shifts through rainbow as it fades
+                        const fade = cellAge[i] / 255;
+                        // Create a rainbow trail: red -> orange -> yellow -> green -> cyan -> blue -> purple
+                        const hue = (1 - fade) * 0.8; // 0.8 = purple to red spectrum
+                        color.setHSL(hue, 1.0, 0.5);
+                        color.multiplyScalar(fade * 0.6); // Brighter trails
+                    } else {
+                        color.copy(COLOR_DEAD);
+                    }
+                }
+                instancedMesh.setColorAt(i, color);
+            }
+            instancedMesh.instanceColor.needsUpdate = true;
+        }
+
+        // Cellular Automaton update with configurable rules
+        function updateGameState() {
+            let aliveCount = 0;
+            birthCount = 0;
+            deathCount = 0;
+
+            const rule = CA_RULES[currentCARule];
+
+            for (let i = 0; i < TOTAL_CELLS; i++) {
+                let liveNeighbors = 0;
+                for (const nIdx of neighbors[i]) {
+                    liveNeighbors += currentState[nIdx];
+                }
+
+                const isAlive = currentState[i];
+                let willBeAlive = false;
+
+                if (isAlive) {
+                    willBeAlive = rule.survive.includes(liveNeighbors);
+                } else {
+                    willBeAlive = rule.birth.includes(liveNeighbors);
+                }
+
+                nextState[i] = willBeAlive ? 1 : 0;
+
+                // Track births and deaths
+                if (!isAlive && willBeAlive) birthCount++;
+                if (isAlive && !willBeAlive) deathCount++;
+
+                // Update cell age
+                if (willBeAlive) {
+                    cellAge[i] = Math.min(255, cellAge[i] + 1);
+                } else {
+                    if (effectTrailEnabled) {
+                        cellAge[i] = Math.max(0, cellAge[i] - 25); // Fade trail slower for longer trails
+                    } else {
+                        cellAge[i] = 0;
+                    }
+                }
+
+                if (nextState[i]) aliveCount++;
+            }
+
+            // Swap buffers
+            [currentState, nextState] = [nextState, currentState];
+            generation++;
+
+            // Update population history
+            populationHistory.push(aliveCount);
+            if (populationHistory.length > MAX_HISTORY) {
+                populationHistory.shift();
+            }
+
+            updateColors();
+            return aliveCount;
+        }
+
+        // Rotation and interaction
+        const torusGroup = new THREE.Group();
+        torusGroup.add(instancedMesh);
+        scene.add(torusGroup);
+
+        let rotationX = 0;
+        let rotationY = 0;
+        let targetRotationX = 0;
+        let targetRotationY = 0;
+
+        // Auto-rotation settings
+        let autoRotateEnabled = false;
+        let autoRotateSpeedX = 0.005;
+        let autoRotateSpeedY = 0.005;
+
+        // Mouse interaction
+        let isMouseDown = false;
+        let isPanning = false;
+        let mouseX = 0;
+        let mouseY = 0;
+
+        const cameraTarget = new THREE.Vector3(0, 0, 0);
+        let cameraDistance = 500;
+
+        // Touch interaction variables
+        let touches = {};
+        let lastTouchDistance = 0;
+        let isTwoFingerGesture = false;
+
+        // Mouse events
+        renderer.domElement.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            isPanning = e.shiftKey;
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+
+            if (isPanning) {
+                document.body.classList.add('move');
+                document.body.classList.remove('grab', 'grabbing');
+            } else {
+                document.body.classList.add('grabbing');
+                document.body.classList.remove('grab', 'move');
+            }
+        });
+
+        renderer.domElement.addEventListener('mousemove', (e) => {
+            if (isMouseDown) {
+                const deltaX = e.clientX - mouseX;
+                const deltaY = e.clientY - mouseY;
+
+                if (isPanning) {
+                    // Pan camera
+                    const panSpeed = 0.5;
+                    cameraTarget.x -= deltaX * panSpeed;
+                    cameraTarget.y += deltaY * panSpeed;
+                } else {
+                    // Rotate view
+                    targetRotationY += deltaX * 0.005;
+                    targetRotationX += deltaY * 0.005;
+                    targetRotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetRotationX));
+                }
+
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            } else {
+                // Update cursor based on shift key
+                if (e.shiftKey) {
+                    document.body.classList.add('move');
+                    document.body.classList.remove('grab', 'grabbing');
+                } else {
+                    document.body.classList.add('grab');
+                    document.body.classList.remove('move', 'grabbing');
+                }
+            }
+        });
+
+        renderer.domElement.addEventListener('mouseup', () => {
+            isMouseDown = false;
+            isPanning = false;
+            document.body.classList.remove('grabbing');
+            document.body.classList.add('grab');
+        });
+
+        renderer.domElement.addEventListener('mouseleave', () => {
+            isMouseDown = false;
+            isPanning = false;
+            document.body.classList.remove('grab', 'grabbing', 'move');
+        });
+
+        renderer.domElement.addEventListener('mouseenter', (e) => {
+            if (e.shiftKey) {
+                document.body.classList.add('move');
+            } else {
+                document.body.classList.add('grab');
+            }
+        });
+
+        // Zoom with mouse wheel
+        renderer.domElement.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            cameraDistance += e.deltaY * 0.5;
+            cameraDistance = Math.max(200, Math.min(800, cameraDistance));
+        });
+
+        // Touch events for mobile
+        renderer.domElement.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+
+            const touchList = Array.from(e.touches);
+
+            if (touchList.length === 1) {
+                // Single finger - rotate
+                isTwoFingerGesture = false;
+                const touch = touchList[0];
+                mouseX = touch.clientX;
+                mouseY = touch.clientY;
+            } else if (touchList.length === 2) {
+                // Two fingers - pan and zoom
+                isTwoFingerGesture = true;
+                const touch1 = touchList[0];
+                const touch2 = touchList[1];
+
+                // Store initial touch positions for panning
+                mouseX = (touch1.clientX + touch2.clientX) / 2;
+                mouseY = (touch1.clientY + touch2.clientY) / 2;
+
+                // Calculate initial distance for pinch zoom
+                const dx = touch2.clientX - touch1.clientX;
+                const dy = touch2.clientY - touch1.clientY;
+                lastTouchDistance = Math.sqrt(dx * dx + dy * dy);
+            }
+        }, { passive: false });
+
+        renderer.domElement.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+
+            const touchList = Array.from(e.touches);
+
+            if (touchList.length === 1 && !isTwoFingerGesture) {
+                // Single finger - rotate
+                const touch = touchList[0];
+                const deltaX = touch.clientX - mouseX;
+                const deltaY = touch.clientY - mouseY;
+
+                targetRotationY += deltaX * 0.01;
+                targetRotationX += deltaY * 0.01;
+                targetRotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetRotationX));
+
+                mouseX = touch.clientX;
+                mouseY = touch.clientY;
+            } else if (touchList.length === 2) {
+                // Two fingers - pan and zoom
+                isTwoFingerGesture = true;
+                const touch1 = touchList[0];
+                const touch2 = touchList[1];
+
+                // Pan based on midpoint movement
+                const midX = (touch1.clientX + touch2.clientX) / 2;
+                const midY = (touch1.clientY + touch2.clientY) / 2;
+                const deltaX = midX - mouseX;
+                const deltaY = midY - mouseY;
+
+                const panSpeed = 0.5;
+                cameraTarget.x -= deltaX * panSpeed;
+                cameraTarget.y += deltaY * panSpeed;
+
+                mouseX = midX;
+                mouseY = midY;
+
+                // Pinch zoom
+                const dx = touch2.clientX - touch1.clientX;
+                const dy = touch2.clientY - touch1.clientY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (lastTouchDistance > 0) {
+                    const delta = distance - lastTouchDistance;
+                    cameraDistance -= delta * 2;
+                    cameraDistance = Math.max(200, Math.min(800, cameraDistance));
+                }
+
+                lastTouchDistance = distance;
+            }
+        }, { passive: false });
+
+        renderer.domElement.addEventListener('touchend', (e) => {
+            e.preventDefault();
+
+            if (e.touches.length === 0) {
+                isTwoFingerGesture = false;
+                lastTouchDistance = 0;
+            } else if (e.touches.length === 1) {
+                // Reset to single finger mode
+                isTwoFingerGesture = false;
+                const touch = e.touches[0];
+                mouseX = touch.clientX;
+                mouseY = touch.clientY;
+            }
+        }, { passive: false });
+
+        renderer.domElement.addEventListener('touchcancel', (e) => {
+            e.preventDefault();
+            isTwoFingerGesture = false;
+            lastTouchDistance = 0;
+        }, { passive: false });
+
+        // Population graph rendering
+        const graphCanvas = document.getElementById('population-graph');
+        const graphCtx = graphCanvas.getContext('2d');
+        graphCanvas.width = graphCanvas.offsetWidth * window.devicePixelRatio;
+        graphCanvas.height = graphCanvas.offsetHeight * window.devicePixelRatio;
+        graphCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+        function drawPopulationGraph() {
+            const width = graphCanvas.offsetWidth;
+            const height = graphCanvas.offsetHeight;
+            graphCtx.clearRect(0, 0, width, height);
+
+            if (populationHistory.length < 2) return;
+
+            const maxPop = Math.max(...populationHistory, 1);
+            const step = width / (MAX_HISTORY - 1);
+
+            graphCtx.strokeStyle = '#00ffff';
+            graphCtx.lineWidth = 2;
+            graphCtx.beginPath();
+
+            populationHistory.forEach((pop, i) => {
+                const x = (i / (populationHistory.length - 1)) * width;
+                const y = height - (pop / maxPop) * height * 0.9 - height * 0.05;
+                if (i === 0) {
+                    graphCtx.moveTo(x, y);
+                } else {
+                    graphCtx.lineTo(x, y);
+                }
+            });
+
+            graphCtx.stroke();
+
+            // Draw axis
+            graphCtx.strokeStyle = 'rgba(0, 255, 255, 0.2)';
+            graphCtx.lineWidth = 1;
+            graphCtx.beginPath();
+            graphCtx.moveTo(0, height);
+            graphCtx.lineTo(width, height);
+            graphCtx.stroke();
+        }
+
+        // Update statistics display
+        function updateStats(aliveCount) {
+            document.getElementById('generation').textContent = generation;
+            document.getElementById('alive').textContent = aliveCount;
+            document.getElementById('birthRate').textContent = birthCount + '/gen';
+            document.getElementById('deathRate').textContent = deathCount + '/gen';
+
+            // Calculate stability (lower change = more stable)
+            const totalChange = birthCount + deathCount;
+            const stability = totalChange === 0 ? 100 : Math.max(0, 100 - (totalChange / TOTAL_CELLS) * 10000);
+            document.getElementById('stability').textContent = stability.toFixed(1) + '%';
+        }
+
+        // Topology mathematical properties
+        const TOPOLOGY_INFO = {
+            torus: { euler: 0, genus: 1, orientable: 'Yes' },
+            doubletorus: { euler: -2, genus: 2, orientable: 'Yes' },
+            sphere: { euler: 2, genus: 0, orientable: 'Yes' },
+            klein: { euler: 0, genus: null, orientable: 'No' },
+            cylinder: { euler: 0, genus: 0, orientable: 'Yes' },
+            mobius: { euler: 0, genus: null, orientable: 'No' },
+            plane: { euler: 1, genus: 0, orientable: 'Yes' }
+        };
+
+        function updateTopologyInfo() {
+            const info = TOPOLOGY_INFO[currentTopology];
+            document.getElementById('eulerChar').textContent = info.euler;
+            document.getElementById('genus').textContent = info.genus !== null ? info.genus : 'N/A';
+            document.getElementById('orientable').textContent = info.orientable;
+        }
+
+        // Keyboard controls
+        const keys = {};
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+
+            if (e.code === 'Space') {
+                e.preventDefault();
+                randomizeState();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        // Topology selector
+        document.getElementById('topology').addEventListener('change', (e) => {
+            currentTopology = e.target.value;
+            rebuildGeometry(currentTopology);
+            randomizeState();
+            updateTopologyInfo();
+        });
+
+        // CA Rule selector
+        document.getElementById('caRule').addEventListener('change', (e) => {
+            currentCARule = e.target.value;
+        });
+
+        // Simulation controls
+        document.getElementById('pausePlay').addEventListener('click', () => {
+            isPaused = !isPaused;
+            const btn = document.getElementById('pausePlay');
+            btn.textContent = isPaused ? '▶ Play' : '⏸ Pause';
+        });
+
+        document.getElementById('step').addEventListener('click', () => {
+            if (isPaused) {
+                const aliveCount = updateGameState();
+                updateStats(aliveCount);
+                drawPopulationGraph();
+            }
+        });
+
+        document.getElementById('randomize').addEventListener('click', () => {
+            randomizeState();
+        });
+
+        document.getElementById('simSpeed').addEventListener('input', (e) => {
+            UPDATE_INTERVAL_MS = parseInt(e.target.value);
+            document.getElementById('simSpeedValue').textContent = UPDATE_INTERVAL_MS + 'ms';
+        });
+
+        // Visual effects toggles
+        document.getElementById('effectAge').addEventListener('change', (e) => {
+            effectAgeEnabled = e.target.checked;
+            if (!effectAgeEnabled) {
+                cellAge.fill(0); // Reset ages
+            }
+            updateColors();
+        });
+
+        document.getElementById('effectTrail').addEventListener('change', (e) => {
+            effectTrailEnabled = e.target.checked;
+            if (!effectTrailEnabled) {
+                cellAge.fill(0); // Clear trails
+            }
+            updateColors();
+        });
+
+        document.getElementById('effectGlow').addEventListener('change', (e) => {
+            effectGlowEnabled = e.target.checked;
+            const canvas = renderer.domElement;
+            if (effectGlowEnabled) {
+                canvas.style.filter = 'brightness(1.3) contrast(1.3) saturate(1.8) drop-shadow(0 0 20px #00ffff)';
+            } else {
+                canvas.style.filter = 'none';
+            }
+        });
+
+        document.getElementById('effectWireframe').addEventListener('change', (e) => {
+            effectWireframeEnabled = e.target.checked;
+            cellMaterial.wireframe = effectWireframeEnabled;
+        });
+
+        // Auto-rotation controls
+        document.getElementById('autoRotate').addEventListener('change', (e) => {
+            autoRotateEnabled = e.target.checked;
+        });
+
+        document.getElementById('rotationSpeedX').addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            autoRotateSpeedX = value * 0.01; // Scale to reasonable rotation speed
+            document.getElementById('speedXValue').textContent = value.toFixed(1);
+        });
+
+        document.getElementById('rotationSpeedY').addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            autoRotateSpeedY = value * 0.01; // Scale to reasonable rotation speed
+            document.getElementById('speedYValue').textContent = value.toFixed(1);
+        });
+
+        // Color controls
+        document.getElementById('colorAlive').addEventListener('input', (e) => {
+            COLOR_ALIVE = new THREE.Color(e.target.value);
+            updateColors();
+        });
+
+        document.getElementById('colorDead').addEventListener('input', (e) => {
+            COLOR_DEAD = new THREE.Color(e.target.value);
+            updateColors();
+        });
+
+        document.getElementById('colorBackground').addEventListener('input', (e) => {
+            scene.background = new THREE.Color(e.target.value);
+        });
+
+        document.getElementById('resetColors').addEventListener('click', () => {
+            // Reset color pickers to defaults
+            document.getElementById('colorAlive').value = DEFAULT_COLOR_ALIVE;
+            document.getElementById('colorDead').value = DEFAULT_COLOR_DEAD;
+            document.getElementById('colorBackground').value = DEFAULT_COLOR_BACKGROUND;
+
+            // Reset actual colors
+            COLOR_ALIVE = new THREE.Color(DEFAULT_COLOR_ALIVE);
+            COLOR_DEAD = new THREE.Color(DEFAULT_COLOR_DEAD);
+            scene.background = new THREE.Color(DEFAULT_COLOR_BACKGROUND);
+
+            // Update cell colors
+            updateColors();
+        });
+
+        // Panel collapse controls
+        document.getElementById('left-toggle').addEventListener('click', () => {
+            const panel = document.getElementById('left-panel');
+            const toggle = document.getElementById('left-toggle');
+            panel.classList.toggle('collapsed');
+            toggle.textContent = panel.classList.contains('collapsed') ? '▶' : '◀';
+        });
+
+        document.getElementById('right-toggle').addEventListener('click', () => {
+            const panel = document.getElementById('right-panel');
+            const toggle = document.getElementById('right-toggle');
+            panel.classList.toggle('collapsed');
+            toggle.textContent = panel.classList.contains('collapsed') ? '◀' : '▶';
+        });
+
+        // Handle arrow key rotation
+        function handleKeyboardRotation() {
+            const rotationSpeed = 0.02;
+
+            if (keys['ArrowLeft']) {
+                targetRotationY -= rotationSpeed;
+            }
+            if (keys['ArrowRight']) {
+                targetRotationY += rotationSpeed;
+            }
+            if (keys['ArrowUp']) {
+                targetRotationX -= rotationSpeed;
+                targetRotationX = Math.max(-Math.PI / 2, targetRotationX);
+            }
+            if (keys['ArrowDown']) {
+                targetRotationX += rotationSpeed;
+                targetRotationX = Math.min(Math.PI / 2, targetRotationX);
+            }
+        }
+
+        // Window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // FPS counter
+        let lastTime = performance.now();
+        let frames = 0;
+        let fps = 0;
+
+        function updateFPS() {
+            frames++;
+            const currentTime = performance.now();
+            if (currentTime >= lastTime + 1000) {
+                fps = Math.round((frames * 1000) / (currentTime - lastTime));
+                frames = 0;
+                lastTime = currentTime;
+                document.getElementById('fps').textContent = fps;
+            }
+        }
+
+        // Game loop
+        let lastUpdateTime = 0;
+
+        function animate(currentTime) {
+            requestAnimationFrame(animate);
+
+            // Update game state (only if not paused)
+            if (!isPaused && currentTime - lastUpdateTime >= UPDATE_INTERVAL_MS) {
+                const aliveCount = updateGameState();
+                updateStats(aliveCount);
+                drawPopulationGraph();
+                lastUpdateTime = currentTime;
+            }
+
+            // Handle keyboard rotation
+            handleKeyboardRotation();
+
+            // Apply auto-rotation if enabled
+            if (autoRotateEnabled) {
+                targetRotationX += autoRotateSpeedX;
+                targetRotationY += autoRotateSpeedY;
+            }
+
+            // Smooth rotation interpolation
+            rotationX += (targetRotationX - rotationX) * 0.1;
+            rotationY += (targetRotationY - rotationY) * 0.1;
+
+            torusGroup.rotation.x = rotationX;
+            torusGroup.rotation.y = rotationY;
+
+            // Update camera position for zoom and pan
+            camera.position.set(
+                cameraTarget.x,
+                cameraTarget.y,
+                cameraTarget.z + cameraDistance
+            );
+            camera.lookAt(cameraTarget);
+
+            // Render
+            renderer.render(scene, camera);
+
+            // Update FPS
+            updateFPS();
+        }
+
+        // Initialize and start
+        randomizeState();
+        updateTopologyInfo();
+        document.body.classList.add('grab');
+        animate(0);
+    </script>
+</body>
+</html>
