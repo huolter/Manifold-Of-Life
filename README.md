@@ -8,9 +8,12 @@ An interactive 3D cellular automaton visualizer exploring Conway's Game of Life 
 
 ## 🎥 Demo Video
 
-[![Watch the demo](https://img.youtube.com/vi/5o7IHqg0gno/maxresdefault.jpg)](https://youtu.be/5o7IHqg0gno)
-
-*Click to watch the full demonstration on YouTube*
+<div align="center">
+  <a href="https://youtu.be/5o7IHqg0gno">
+    <img src="https://img.youtube.com/vi/5o7IHqg0gno/0.jpg" alt="Manifold of Life Demo" style="width:100%;max-width:800px;">
+  </a>
+  <p><em>▶️ Click to watch the full demonstration on YouTube</em></p>
+</div>
 
 ## ✨ Overview
 
