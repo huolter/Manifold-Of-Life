@@ -6,6 +6,12 @@ An interactive 3D cellular automaton visualizer exploring Conway's Game of Life 
 
 ![Conway's Game of Life on Various Topologies](https://img.shields.io/badge/Grid-316×316-blue) ![Cells](https://img.shields.io/badge/Cells-99,856-purple) ![Topologies](https://img.shields.io/badge/Topologies-7-orange)
 
+## 🎥 Demo Video
+
+[![Watch the demo](https://img.youtube.com/vi/5o7IHqg0gno/maxresdefault.jpg)](https://youtu.be/5o7IHqg0gno)
+
+*Click to watch the full demonstration on YouTube*
+
 ## ✨ Overview
 
 **Manifold of Life** reimagines the classic Conway's Game of Life by extending it to non-Euclidean topological surfaces. Watch cellular automata evolve on tori, Klein bottles, Möbius strips, and more—each with unique wrapping behavior that creates fascinating emergent patterns.
