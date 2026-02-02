@@ -134,28 +134,6 @@ Real-time metrics for pattern analysis:
 - Conditional effect application
 - Throttled statistics updates
 
-## 🚀 Local Development
-
-```bash
-# Clone repository
-git clone https://github.com/huolter/Manifold-Of-Life.git
-cd Manifold-Of-Life
-
-# No build step required - pure HTML/CSS/JS
-# Open in browser
-open index.html
-# Or serve with any static server:
-python -m http.server 8000
-```
-
-### File Structure
-```
-.
-├── index.html          # Main application entry
-├── README.md           # This file
-└── CLAUDE.md           # AI development context
-```
-
 ## 🧠 AI-Assisted Development
 
 This project was built using **Kimi K2.5** (Moonshot AI) in **under a minute**, demonstrating:
