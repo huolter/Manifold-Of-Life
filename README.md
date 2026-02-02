@@ -134,24 +134,6 @@ Real-time metrics for pattern analysis:
 - Conditional effect application
 - Throttled statistics updates
 
-## 🧠 AI-Assisted Development
-
-This project was built using **Kimi K2.5** (Moonshot AI) in **under a minute**, demonstrating:
-- Rapid prototyping with AI pair programming
-- Iterative refinement through conversational coding
-- Cost-effective development (built for cents!)
-
-> "Insanely brutal what you can build if you know what to ask."
-
-The entire codebase—including Three.js setup, topology math, CA logic, and UI—was generated through natural language prompts and refined through quick iterations.
-
-## 🎯 Use Cases
-
-- **Education**: Teaching topology, cellular automata, and emergent behavior
-- **Research**: Exploring CA dynamics on non-Euclidean surfaces
-- **Art**: Generative art and pattern exploration
-- **Demos**: Showcasing WebGL/Three.js capabilities
-
 ## 🔮 Future Enhancements
 
 - [ ] Custom rule editor (B/S notation input)
@@ -172,10 +154,6 @@ MIT License - Feel free to use, modify, and distribute.
 - **Three.js**: Ricardo Cabello (mrdoob) and contributors
 - **AI Development**: Kimi K2.5 by Moonshot AI
 - **Inspiration**: Mathematical topology and emergent complexity
-
-## 📞 Contact
-
-Built by [Walter Gonzalez](https://gualterio.com)
 
 ---
 
